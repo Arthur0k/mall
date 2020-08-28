@@ -1,6 +1,7 @@
 <template>
   <div id="home">
     <navbar></navbar>
+    <tab-control ref="tabControl2" :list="['流行', '新款', '精选']" @tabClick="tabClick" class="tabFixed" v-show="isFixed"></tab-control>
     <scroll
       class="wrapper"
       ref="scroll"
@@ -10,10 +11,10 @@
       @scroll="contentPosition"
       @pullingUp="loadMore"
     >
-      <home-swiper :banners="banners" ref="hSwiper"></home-swiper>
+      <home-swiper @imgLoad="swiperImgLoad" :banners="banners" ref="hSwiper"></home-swiper>
       <feature-view :recommends="recommends"></feature-view>
       <home-recommend></home-recommend>
-      <tab-control :list="['流行', '新款', '精选']" @tabClick="tabClick"></tab-control>
+      <tab-control ref="tabControl" :list="['流行', '新款', '精选']" @tabClick="tabClick"></tab-control>
       <good-list :goodlist="goodlist[type].list"></good-list>
     </scroll>
     <back-top @click.native="backtop" v-show="isShow"></back-top>
@@ -32,6 +33,7 @@ import homeRecommend from './childComps/homeRecommend'
 import GoodList from './childComps/GoodList'
 
 import { getHomeMultiData, getHomeData } from 'network/home'
+import { deBounce } from 'components/common/utils'
 
 export default {
   data() {
@@ -44,7 +46,10 @@ export default {
         new: { page: 1, list: [] }
       },
       type: 'pop',
-      isShow: 0
+      isShow: 0,
+      isFixed: false,
+      tabControlOffsetTop: 0,
+      scrollY: 0
     }
   },
   components: {
@@ -61,16 +66,6 @@ export default {
     /**
      * 业务相关
      */
-    deBounce(fn, delay) {
-      let timeout
-      return function (...args) {
-        const context = this
-        if (timeout) clearTimeout(timeout)
-        timeout = setTimeout(() => {
-          fn.apply(context, args)
-        }, delay)
-      }
-    },
     tabClick(index) {
       switch (index) {
         case 0:
@@ -83,15 +78,23 @@ export default {
           this.type = 'sell'
           break
       }
+      this.$refs.tabControl.currentIndex = index
+      this.$refs.tabControl2.currentIndex = index
     },
     loadMore() {
       this.getHomeData(this.type)
     },
     contentPosition(pos) {
-      this.isShow = -pos.y > 1000
+      // backtop的显示与隐藏
+      this.isShow = -pos.y >= 1000
+      // tabcontrol的显示隐藏
+      this.isFixed = -pos.y >= this.tabControlOffsetTop
     },
     backtop() {
       this.$refs.scroll.scrollTo(0, 0, 300)
+    },
+    swiperImgLoad() {
+      this.tabControlOffsetTop = this.$refs.tabControl.$el.offsetTop
     },
     /**
      * 网络请求相关
@@ -128,13 +131,16 @@ export default {
   },
   mounted() {
     // bus监听图片加载完
-    this.$bus.$on('imgLoaded', this.deBounce(this.$refs.scroll.refresh, 100))
+    this.$bus.$on('imgLoaded', deBounce(this.$refs.scroll.refresh, 200))
   },
   activated: function () {
     this.$refs.hSwiper.startTimer()
+    this.$refs.scroll.scrollTo(0, this.scrollY, 0)
+    this.$refs.scroll.refresh()
   },
   deactivated: function () {
     this.$refs.hSwiper.stopTimer()
+    this.scrollY = this.$refs.scroll.getScrollY()
   }
 }
 </script>
@@ -149,5 +155,8 @@ export default {
   left: 0;
   right: 0;
   bottom: 50px;
+}
+.tabFixed {
+  position: relative;
 }
 </style>

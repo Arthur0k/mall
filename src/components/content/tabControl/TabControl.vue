@@ -35,6 +35,8 @@ export default {
   display: flex;
   height: 40px;
   line-height: 40px;
+  background-color: #fff;
+  z-index: 99;
 }
 .tab-control-item {
   flex: 1;

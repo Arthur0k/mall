@@ -53,7 +53,9 @@ export default {
     },
     refresh() {
       this.bs && this.bs.refresh()
-      console.log('----')
+    },
+    getScrollY() {
+      return this.bs && this.bs.y
     }
   },
   mounted() {
